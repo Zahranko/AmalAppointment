@@ -1,0 +1,17 @@
+# Hostinger clones this repo straight into the subdomain's document root, so
+# every file in the repo is reachable over HTTP — block the developer ones.
+
+DirectoryIndex index.html
+
+<FilesMatch "^(README\.md|\.gitignore|\.htaccess)$">
+  Require all denied
+</FilesMatch>
+
+RedirectMatch 404 /\.git
+
+# A patient loading a stale cached copy would post to an old API origin.
+<IfModule mod_headers.c>
+  <FilesMatch "\.html$">
+    Header set Cache-Control "no-cache, must-revalidate"
+  </FilesMatch>
+</IfModule>

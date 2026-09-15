@@ -1,0 +1,1428 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<!-- نفس قشرة صفحة آراء المرضى (AmalFeedback): تملأ الشاشة، لا تتمرّر ولا
+     تُكبَّر على الهاتف، ولوحة المفاتيح تقلّص المنطقة المرئية وحدها. -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-visual">
+<meta name="theme-color" content="#08517d">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="format-detection" content="telephone=no">
+<meta name="robots" content="noindex">
+<meta name="description" content="احجز موعدك في مستشفى الأمل — اترك بياناتك ونتواصل معك">
+<title>حجز موعد | مستشفى الأمل</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* =========================================================
+   مستشفى الأمل — طلب موعد
+   قشرة تطبيق: ترويسة ثابتة، نموذج يتمرّر وحده، وشريط إجراء أسفل الشاشة.
+   على الحاسوب تصير الصفحة شاشة مقسومة تملأ النافذة كاملة.
+   ========================================================= */
+
+:root{
+  --navy:#08517d;
+  --navy-deep:#063a5b;
+  --sky:#169fd9;
+  --sky-soft:#e7f4fb;
+  --paper:#f7fafc;
+  --ink:#123047;
+  --ink-soft:#6a8398;
+  --line:#e3ecf2;
+  --field:#eef4f8;
+  --ok:#159f8a;
+  --accent:#e0794a;
+  --danger:#d64545;
+
+  --radius-lg:26px;
+  --radius-md:18px;
+  --radius-sm:14px;
+  --ease:cubic-bezier(.4,.1,.2,1);
+
+  --tap:52px;
+
+  /* ثلاثة ارتفاعات للوحة المفاتيح — انظر README صفحة الآراء:
+     --app-h القشرة ولا تتأثّر باللوحة، --vv-h المنطقة المرئية للأوراق
+     السفلية وحدها، --kb-h الفرق كمساحة تمرير إضافية. */
+  --app-h:100dvh;
+  --vv-h:100dvh;
+  --kb-h:0px;
+}
+
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%;height:100%}
+
+body{
+  font-family:'Cairo',system-ui,-apple-system,'Segoe UI',sans-serif;
+  background:var(--paper);
+  color:var(--ink);
+  line-height:1.6;
+  -webkit-font-smoothing:antialiased;
+  position:fixed;
+  inset:0;
+  width:100%;
+  height:100%;
+  overflow:hidden;
+  overscroll-behavior:none;
+  touch-action:manipulation;
+}
+
+/* ---------- الهيكل ---------- */
+.stage{height:var(--app-h);display:flex;overflow:hidden}
+.device{flex:1;min-width:0;display:flex;flex-direction:column;min-height:0;background:var(--paper)}
+.pane{flex:1;min-height:0;display:flex;flex-direction:column}
+
+/* ---------- الترويسة ---------- */
+.head{
+  flex:none;position:relative;
+  background:linear-gradient(158deg,var(--sky) -10%,var(--navy) 55%,var(--navy-deep) 100%);
+  color:#fff;text-align:center;
+  padding:calc(16px + env(safe-area-inset-top)) 22px 34px;
+  overflow:hidden;
+}
+.head .glow{
+  position:absolute;width:220px;height:220px;border-radius:50%;
+  background:radial-gradient(circle,rgba(255,255,255,.14),transparent 70%);
+  top:-70px;left:-40px;pointer-events:none;
+}
+.head .glow.b{display:none}
+.head-top{position:relative;z-index:2}
+
+.logo{display:flex;align-items:center;justify-content:center;margin-bottom:10px}
+.logo .wm{display:block;text-align:center;line-height:1.15}
+.logo .wm .ar{display:block;font-weight:800;font-size:17px;letter-spacing:-.5px}
+.logo .wm .en{display:block;font-size:9.5px;letter-spacing:.16em;color:#bfe4f7;font-weight:500}
+
+.head h1{font-size:21px;font-weight:700;line-height:1.3}
+.head .tag{margin-top:4px;font-size:12px;color:#cfeafa;display:inline-flex;align-items:center;gap:7px}
+.head .tag::before,.head .tag::after{content:"";width:16px;height:1px;background:rgba(255,255,255,.4)}
+.head .lede{margin-top:12px;font-size:13px;color:#dcf0fb;max-width:300px;margin-inline:auto}
+
+@media (max-height:720px){ .head .lede{display:none} }
+@media (max-height:600px){
+  .head{padding:calc(10px + env(safe-area-inset-top)) 22px 26px}
+  .logo{margin-bottom:6px}
+  .logo .wm .en{display:none}
+  .head h1{font-size:18px}
+}
+
+.assurances{display:none}
+
+.arch{
+  position:absolute;bottom:-1px;left:0;right:0;height:26px;
+  background:var(--paper);border-radius:50% 50% 0 0/100% 100% 0 0;
+}
+
+/* ---------- منطقة التمرير ---------- */
+.sheet{
+  flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;
+  -webkit-overflow-scrolling:touch;padding:2px 18px 20px;scrollbar-width:thin;
+}
+.sheet::-webkit-scrollbar{width:6px}
+.sheet::-webkit-scrollbar-thumb{background:#cfdde7;border-radius:3px}
+
+.form-title{display:none}
+
+.kicker{
+  font-size:12px;font-weight:600;color:var(--ink-soft);
+  margin:18px 2px 10px;display:flex;align-items:center;gap:8px;
+}
+.kicker:first-child{margin-top:14px}
+.kicker::after{content:"";flex:1;height:1px;background:var(--line)}
+.kicker .n{
+  width:20px;height:20px;border-radius:50%;flex:none;display:grid;place-items:center;
+  background:var(--sky-soft);color:var(--navy);font-size:11px;font-weight:700;
+}
+
+/* ---------- الحقول ---------- */
+.field{margin-bottom:14px}
+/* على الهاتف واللوحي حقل تحت حقل؛ على الحاسوب عمودان (انظر أسفل). */
+.grid2{display:block}
+
+label,.lbl{display:block;font-size:13px;font-weight:600;margin-bottom:6px;color:var(--ink)}
+label .req,.lbl .req{color:var(--accent)}
+label .opt-note,.lbl .opt-note{color:var(--ink-soft);font-weight:500;font-size:12px}
+
+/* 16px ليست جمالية: Safari يكبّر الصفحة عند التركيز على أي حقل أصغر. */
+.inp{
+  width:100%;font-family:inherit;font-size:16px;color:var(--ink);
+  background:var(--field);border:1.5px solid transparent;border-radius:var(--radius-sm);
+  padding:13px 14px;min-height:var(--tap);
+  transition:border-color .18s var(--ease),background .18s var(--ease),box-shadow .18s var(--ease);
+}
+.inp::placeholder{color:#9fb3c2;opacity:1}
+.inp:focus{outline:none;background:#fff;border-color:var(--sky);box-shadow:0 0 0 4px rgba(22,159,217,.14)}
+.inp:disabled{opacity:.6;cursor:not-allowed}
+textarea.inp{resize:none;min-height:108px;line-height:1.7}
+
+/* ---------- زر منتقٍ يفتح ورقة ---------- */
+.picker{
+  width:100%;display:flex;align-items:center;gap:10px;
+  font-family:inherit;font-size:16px;color:var(--ink);text-align:start;
+  background:var(--field);border:1.5px solid transparent;border-radius:var(--radius-sm);
+  min-height:var(--tap);padding:0 14px;cursor:pointer;
+  transition:border-color .18s var(--ease),background .18s var(--ease),box-shadow .18s var(--ease);
+  -webkit-user-select:none;user-select:none;touch-action:manipulation;
+}
+.picker .val{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.picker .val.ph{color:#9fb3c2}
+.picker .lead{flex:none;font-size:17px;line-height:1;opacity:.75}
+.picker .dial{flex:none;color:var(--ink-soft);font-size:14.5px;font-weight:500}
+.picker::after{
+  content:"";flex:none;width:8px;height:8px;margin-inline-start:2px;
+  /* حدود فيزيائية لا منطقية: المنطقية تنقلب في RTL فيشير السهم للجهة الخطأ. */
+  border:2px solid var(--ink-soft);border-top:0;border-left:0;
+  transform:rotate(45deg) translate(-2px,-2px);
+}
+.picker:active{background:#e5eef4}
+.picker:focus-visible{outline:none;background:#fff;border-color:var(--sky);box-shadow:0 0 0 4px rgba(22,159,217,.14)}
+.picker[aria-expanded="true"]{background:#fff;border-color:var(--sky);box-shadow:0 0 0 4px rgba(22,159,217,.14)}
+.picker:disabled{opacity:.6;cursor:progress}
+
+.phone-row{display:flex;gap:10px}
+.phone-row .code{width:134px;flex:none;padding-inline:11px;gap:6px}
+.phone-row .code .val{font-size:14.5px}
+.phone-row .num{flex:1;min-width:0}
+
+.inp.invalid,.picker.invalid{border-color:var(--danger);background:#fdf1f1}
+.inp.invalid:focus{box-shadow:0 0 0 4px rgba(214,69,69,.14)}
+.err{font-size:11.5px;color:var(--danger);margin-top:6px}
+.err:empty{display:none}
+
+.under{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.counter{font-size:11px;color:var(--ink-soft);margin-top:6px;margin-inline-start:auto;flex:none}
+
+.form-error{
+  background:#fdf1f1;border:1px solid #f5d4d4;color:#a83232;
+  border-radius:var(--radius-sm);padding:11px 14px;font-size:13px;margin:4px 0 12px;
+}
+
+.foot{
+  margin-top:14px;text-align:center;font-size:11.5px;color:var(--ink-soft);
+  display:flex;align-items:center;justify-content:center;gap:6px;
+}
+
+/* ---------- شريط الإجراء السفلي ---------- */
+.actions{
+  flex:none;background:#fff;border-top:1px solid var(--line);
+  padding:10px 18px calc(10px + env(safe-area-inset-bottom));
+  box-shadow:0 -14px 28px -24px rgba(8,48,71,.7);
+}
+.actions-inner{display:flex;flex-direction:column;gap:10px}
+.actions .hint,.actions .hint[hidden]{display:none}
+
+.submit{
+  width:100%;position:relative;
+  background:linear-gradient(135deg,var(--sky),var(--navy));
+  color:#fff;border:none;border-radius:16px;padding:15px;min-height:var(--tap);
+  font-family:inherit;font-size:16px;font-weight:700;cursor:pointer;
+  transition:transform .18s var(--ease),opacity .18s var(--ease),box-shadow .18s var(--ease);
+  box-shadow:0 12px 24px -14px rgba(8,81,125,.85);
+  display:flex;align-items:center;justify-content:center;gap:10px;touch-action:manipulation;
+}
+@media (hover:hover) and (pointer:fine){
+  .submit:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 16px 28px -14px rgba(8,81,125,.9)}
+}
+.submit:active:not(:disabled){transform:scale(.99)}
+.submit:disabled{opacity:.75;cursor:progress}
+.submit .spinner{
+  display:none;width:17px;height:17px;border-radius:50%;
+  border:2.5px solid rgba(255,255,255,.35);border-top-color:#fff;animation:spin .7s linear infinite;
+}
+.submit.loading .spinner{display:block}
+/* display:flex أعلاه يتقدّم على [hidden] في متصفّح المستخدم. */
+.submit[hidden]{display:none}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+.ghost{
+  width:100%;background:transparent;border:1.5px solid var(--line);color:var(--navy);
+  border-radius:16px;padding:14px;min-height:var(--tap);
+  font-family:inherit;font-size:16px;font-weight:700;cursor:pointer;
+  transition:.18s var(--ease);touch-action:manipulation;
+}
+.ghost:active{background:var(--sky-soft)}
+.ghost[hidden]{display:none}
+
+/* ---------- شاشة النجاح ---------- */
+.done{text-align:center;padding:26px 4px 20px;animation:rise .4s var(--ease)}
+@keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+.done-ring{
+  width:78px;height:78px;margin:0 auto 18px;border-radius:50%;
+  background:linear-gradient(135deg,#25c2a8,var(--ok));
+  display:grid;place-items:center;color:#fff;font-size:36px;font-weight:700;
+  box-shadow:0 16px 32px -14px rgba(21,159,138,.8);
+}
+.done h2{font-size:21px;margin-bottom:8px}
+.done > p{font-size:13.5px;color:var(--ink-soft);max-width:340px;margin:0 auto 20px}
+
+.recap{
+  background:#fff;border:1.5px dashed var(--line);border-radius:var(--radius-md);
+  padding:6px 18px;margin:0 auto 8px;max-width:420px;text-align:start;
+}
+.recap div{display:flex;justify-content:space-between;gap:14px;padding:10px 0;border-bottom:1px solid var(--line);font-size:13.5px}
+.recap div:last-child{border-bottom:0}
+.recap dt{color:var(--ink-soft);flex:none}
+.recap dd{font-weight:600;text-align:end;min-width:0;overflow-wrap:anywhere}
+.recap dd.ltr{direction:ltr}
+
+/* =========================================================
+   الأوراق — مكوّن واحد للدولة والإجراء ومصدر المعرفة.
+   ورقة سفلية على الهاتف، وحوار في الوسط فوق 640px.
+   ========================================================= */
+.sh{
+  position:fixed;top:0;left:0;right:0;height:var(--vv-h);z-index:60;
+  display:flex;align-items:flex-end;justify-content:center;
+}
+.sh[hidden]{display:none}
+.sh-scrim{position:absolute;inset:0;background:rgba(6,32,50,.55);animation:fade .18s var(--ease)}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+
+.sh-card{
+  position:relative;background:#fff;width:100%;
+  max-height:calc(var(--vv-h) - 64px);
+  display:flex;flex-direction:column;overflow:hidden;
+  border-radius:var(--radius-lg) var(--radius-lg) 0 0;
+  animation:slideUp .24s var(--ease);
+  box-shadow:0 -18px 50px -20px rgba(6,32,50,.5);
+}
+@keyframes slideUp{from{transform:translateY(28px);opacity:.6}to{transform:none;opacity:1}}
+
+.sh-grab{width:42px;height:4px;border-radius:2px;background:#d7e3ec;margin:9px auto 2px;flex:none}
+.sh-head{display:flex;align-items:center;gap:10px;padding:8px 14px 10px;flex:none}
+.sh-title{font-weight:700;font-size:16px;flex:1;min-width:0}
+.sh-close{
+  background:var(--field);border:none;border-radius:12px;width:40px;height:40px;flex:none;
+  font-size:16px;color:var(--ink-soft);cursor:pointer;font-family:inherit;line-height:1;touch-action:manipulation;
+}
+.sh-close:active{background:#e2ebf1}
+.sh-search{padding:0 14px 10px;flex:none}
+.sh-search[hidden]{display:none}
+
+.sh-body{
+  overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;
+  flex:1;min-height:0;padding-bottom:calc(12px + env(safe-area-inset-bottom));
+  border-top:1px solid var(--line);
+}
+
+.opts{list-style:none;padding:0 8px}
+.opt-group{
+  font-size:11.5px;font-weight:600;color:var(--ink-soft);
+  padding:13px 10px 6px;position:sticky;top:0;background:#fff;z-index:1;
+}
+.opt{
+  display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;
+  background:none;border:none;font-family:inherit;font-size:16px;color:var(--ink);
+  padding:12px 10px;border-radius:12px;cursor:pointer;text-align:start;
+  min-height:var(--tap);touch-action:manipulation;
+}
+.opt:active{background:var(--sky-soft)}
+.opt:focus-visible{outline:2px solid var(--sky);outline-offset:-2px}
+.opt .dial{color:var(--ink-soft);font-size:14px;flex:none}
+.opt[aria-current="true"]{background:var(--sky-soft);color:var(--navy);font-weight:600}
+.opt[aria-current="true"] .dial{color:var(--navy)}
+.opt[aria-current="true"]::after{content:"✓";flex:none;color:var(--sky);font-weight:700}
+.opt-empty{padding:26px 10px;text-align:center;color:var(--ink-soft);font-size:14px}
+
+/* مؤشّر الفأرة: تغذية راجعة عند المرور لا يحتاجها اللمس. */
+@media (hover:hover) and (pointer:fine){
+  .picker:hover:not(:disabled):not([aria-expanded="true"]){background:#e6eff5}
+  .inp:hover:not(:focus):not(:disabled){background:#e6eff5}
+  .opt:hover{background:#f1f7fb}
+  .opt[aria-current="true"]:hover{background:var(--sky-soft)}
+  .sh-close:hover{background:#e2ebf1}
+  .ghost:hover{background:var(--sky-soft)}
+}
+
+/* =========================================================
+   لوحي — بطاقة على خلفية داكنة (كصفحة الآراء)
+   ========================================================= */
+@media (min-width:640px){
+  body{
+    background:
+      radial-gradient(700px 380px at 82% -6%,#0f6ba0 0%,transparent 60%),
+      radial-gradient(600px 320px at -5% 105%,#073d5f 0%,transparent 55%),
+      #05283d;
+  }
+  .stage{align-items:center;justify-content:center;padding:28px 24px}
+  .device{
+    flex:none;width:min(580px,100%);height:min(100%,860px);
+    border-radius:var(--radius-lg);overflow:hidden;
+    box-shadow:0 44px 90px -34px rgba(0,0,0,.65),0 0 0 1px rgba(255,255,255,.06);
+  }
+  .head{padding:34px 34px 42px}
+  .logo{margin-bottom:16px}
+  .logo .wm .ar{font-size:20px}
+  .logo .wm .en{display:block;font-size:10.5px}
+  .head h1{font-size:25px}
+  .head .lede{display:block}
+  .sheet{padding:6px 32px 26px}
+  .actions{padding:14px 32px}
+
+  .sh{align-items:center;padding:24px}
+  .sh-card{max-width:440px;max-height:min(76vh,640px);border-radius:var(--radius-lg)}
+  .sh-grab{display:none}
+  .sh-head{padding:15px 16px 11px}
+}
+
+/* =========================================================
+   حاسوب محمول ومكتبي — شاشة مقسومة تملأ النافذة
+   لا بطاقة عائمة بارتفاع محدود: على شاشة 1366×768 كانت البطاقة تترك
+   نصف النافذة فارغاً وتُجبر النموذج على التمرير. هنا عمود الهوية بعرض
+   ثابت النسبة، والنموذج يأخذ الباقي بحقول في عمودين حتى يظهر كاملاً
+   بلا تمرير على شاشة محمول عادية.
+   ========================================================= */
+@media (min-width:960px){
+  body{background:var(--paper)}
+  .stage{padding:0}
+  .device{
+    width:100%;height:100%;
+    border-radius:0;box-shadow:none;
+    display:grid;
+    grid-template-columns:minmax(340px,36%) 1fr;
+    align-items:stretch;
+  }
+
+  .head{
+    display:flex;flex-direction:column;justify-content:space-between;
+    text-align:start;padding:clamp(32px,6vh,64px) clamp(32px,4vw,64px);overflow-y:auto;
+  }
+  .head .glow{width:420px;height:420px;top:-140px;left:-120px}
+  .head .glow.b{display:block;width:360px;height:360px;top:auto;bottom:-160px;left:auto;right:-120px;
+    background:radial-gradient(circle,rgba(22,159,217,.28),transparent 70%)}
+  .logo{justify-content:flex-start;margin-bottom:clamp(24px,6vh,56px)}
+  .logo .wm{text-align:start}
+  .logo .wm .ar{font-size:24px}
+  .head h1{font-size:clamp(30px,2.6vw,40px)}
+  .head .tag{margin-top:10px;font-size:13.5px}
+  .head .tag::before{display:none}
+  .head .lede{display:block;margin-inline:0;font-size:15px;max-width:36ch;margin-top:18px}
+
+  .assurances{
+    display:flex;flex-direction:column;gap:18px;
+    list-style:none;margin-top:36px;position:relative;z-index:2;
+  }
+  .assurances li{display:flex;align-items:flex-start;gap:13px;font-size:13px;color:#cfeafa}
+  .assurances .ai{
+    width:38px;height:38px;flex:none;border-radius:12px;
+    background:rgba(255,255,255,.12);display:grid;place-items:center;font-size:17px;
+  }
+  .assurances li strong{display:block;color:#fff;font-size:14px;font-weight:600;line-height:1.5}
+
+  .arch{inset:0 auto 0 -1px;width:34px;height:auto;border-radius:0 50% 50% 0/0 100% 100% 0}
+
+  .pane{min-height:0;min-width:0}
+  .sheet{padding:clamp(24px,5vh,56px) clamp(40px,5vw,96px) 24px}
+  .form,.done{max-width:780px;margin-inline:auto}
+
+  .form-title{display:block;margin-bottom:4px}
+  .form-title h2{font-size:24px;font-weight:700;line-height:1.35}
+  .form-title p{font-size:13.5px;color:var(--ink-soft)}
+  .kicker,.kicker:first-child{margin:22px 2px 12px}
+
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:0 22px}
+  .grid2 .field{min-width:0}
+  textarea.inp{min-height:120px}
+
+  .actions{padding:16px clamp(40px,5vw,96px) calc(16px + env(safe-area-inset-bottom))}
+  .actions-inner{max-width:780px;margin-inline:auto;flex-direction:row;align-items:center;justify-content:space-between;gap:20px}
+  .actions .hint{display:block;font-size:12.5px;color:var(--ink-soft)}
+  .actions .hint[hidden]{display:none}
+  .actions .hint kbd{
+    font-family:inherit;font-size:11.5px;background:var(--field);border:1px solid var(--line);
+    border-radius:6px;padding:1px 6px;direction:ltr;display:inline-block;
+  }
+  .submit,.ghost{width:auto;min-width:260px;flex:none}
+  .done{padding:clamp(16px,6vh,64px) 0}
+}
+
+/* شاشة محمول قصيرة (≈ 1366×768 بعد شريط المتصفح): ضغط المسافات حتى يبقى
+   النموذج كاملاً فوق شريط الإرسال. */
+@media (min-width:960px) and (max-height:760px){
+  .sheet{padding-top:22px}
+  .form-title h2{font-size:21px}
+  .kicker,.kicker:first-child{margin:14px 2px 8px}
+  .field{margin-bottom:10px}
+  textarea.inp{min-height:96px}
+  .assurances{gap:12px;margin-top:24px}
+  .foot{margin-top:6px}
+}
+
+@media (min-width:1400px){
+  .device{grid-template-columns:minmax(460px,34%) 1fr}
+  .form,.done,.actions-inner{max-width:860px}
+}
+
+/* بعد كل الاستعلامات عمداً، فكلها تكتب padding مختصراً يمسح ما قبله. */
+.sheet{padding-bottom:calc(20px + var(--kb-h))}
+
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms !important;transition-duration:.01ms !important}
+  .submit:hover:not(:disabled){transform:none}
+}
+</style>
+</head>
+<body>
+
+<div class="stage">
+  <div class="device">
+
+    <!-- ===== الترويسة / عمود الهوية على الحاسوب ===== -->
+    <header class="head">
+      <span class="glow" aria-hidden="true"></span>
+      <span class="glow b" aria-hidden="true"></span>
+
+      <div class="head-top">
+        <div class="logo">
+          <span class="wm">
+            <span class="ar">مستشفى الأمل</span>
+            <span class="en">AL AMAL HOSPITAL</span>
+          </span>
+        </div>
+
+        <h1>احجز موعدك</h1>
+        <div class="tag">من الأمل تبدأ الحياة</div>
+        <p class="lede">اترك بياناتك والإجراء الذي تحتاجه، ويتواصل معك فريق المواعيد لتأكيد الوقت المناسب لك.</p>
+      </div>
+
+      <!-- الحاسوب فقط -->
+      <ul class="assurances">
+        <li><span class="ai">📞</span><span><strong>نتصل بك</strong>يتواصل معك فريق المواعيد لتحديد الوقت</span></li>
+        <li><span class="ai">⏱️</span><span><strong>أقل من دقيقة</strong>بضعة حقول فقط وينتهي الطلب</span></li>
+        <li><span class="ai">🔐</span><span><strong>سرّية تامة</strong>بياناتك لا تُشارك خارج المستشفى</span></li>
+      </ul>
+
+      <span class="arch" aria-hidden="true"></span>
+    </header>
+
+    <!-- ===== النموذج ===== -->
+    <div class="pane">
+
+      <main class="sheet" id="scroller">
+        <form id="appointmentForm" class="form" novalidate>
+
+          <div class="form-title">
+            <h2>طلب موعد جديد</h2>
+            <p>الحقول المعلَّمة بـ <span style="color:var(--accent)">*</span> مطلوبة.</p>
+          </div>
+
+          <div class="kicker"><span class="n">1</span>بياناتك</div>
+
+          <div class="grid2">
+            <div class="field">
+              <label for="fullName">الاسم الكامل <span class="req">*</span></label>
+              <input class="inp" id="fullName" name="fullName" type="text"
+                     placeholder="سارة الأحمد" autocomplete="name" autocapitalize="words"
+                     enterkeyhint="next" maxlength="120" required>
+              <p class="err" data-err-for="fullName"></p>
+            </div>
+
+            <div class="field">
+              <label for="phoneNumber">رقم الهاتف <span class="req">*</span></label>
+              <div class="phone-row">
+                <button type="button" class="picker code" id="countryBtn"
+                        aria-haspopup="dialog" aria-expanded="false" aria-label="مفتاح الدولة">
+                  <span class="val" id="countryLabel">الأردن</span>
+                  <span class="dial" id="countryDial" dir="ltr">+962</span>
+                </button>
+                <input type="hidden" id="phoneCountryCode" value="+962">
+                <input class="inp num" id="phoneNumber" name="phoneNumber" type="tel"
+                       placeholder="7X XXX XXXX" dir="ltr" inputmode="tel"
+                       autocomplete="tel-national" enterkeyhint="next" maxlength="15" required>
+              </div>
+              <p class="err" data-err-for="phoneNumber"></p>
+            </div>
+          </div>
+
+          <div class="kicker"><span class="n">2</span>الموعد</div>
+
+          <div class="grid2">
+            <div class="field">
+              <span class="lbl" id="procedureLbl">الإجراء المطلوب <span class="req">*</span></span>
+              <button type="button" class="picker" id="procedureBtn"
+                      aria-haspopup="dialog" aria-expanded="false" aria-labelledby="procedureLbl procedureText">
+                <span class="lead" aria-hidden="true">🩺</span>
+                <span class="val ph" id="procedureText">جارٍ التحميل…</span>
+              </button>
+              <input type="hidden" id="procedureId" name="procedureId">
+              <p class="err" data-err-for="procedureId"></p>
+            </div>
+
+            <div class="field">
+              <span class="lbl" id="referralLbl">كيف سمعت عنا؟ <span class="req">*</span></span>
+              <button type="button" class="picker" id="referralBtn"
+                      aria-haspopup="dialog" aria-expanded="false" aria-labelledby="referralLbl referralText">
+                <span class="lead" aria-hidden="true">📣</span>
+                <span class="val ph" id="referralText">جارٍ التحميل…</span>
+              </button>
+              <input type="hidden" id="referralSourceId" name="referralSourceId">
+              <p class="err" data-err-for="referralSourceId"></p>
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="details">تفاصيل إضافية <span class="opt-note">(اختياري)</span></label>
+            <textarea class="inp" id="details" name="details" maxlength="2000"
+                      enterkeyhint="done"
+                      placeholder="مثلاً: الوقت الذي يناسبك، اسم الطبيب إن كان لديك تفضيل، أو أي ملاحظة..."></textarea>
+            <div class="under">
+              <p class="err" data-err-for="details"></p>
+              <span class="counter"><span id="detailsCount">0</span>/2000</span>
+            </div>
+          </div>
+
+          <p class="form-error" id="formError" role="alert" hidden></p>
+
+          <div class="foot">🔒 بياناتك سرّية وتُستخدم لترتيب موعدك فقط</div>
+        </form>
+
+        <!-- ===== شاشة النجاح ===== -->
+        <section class="done" id="successView" hidden aria-live="polite">
+          <div class="done-ring"><span>✓</span></div>
+          <h2>وصلنا طلبك</h2>
+          <p>شكراً لك. سيتواصل معك فريق المواعيد قريباً لتأكيد موعدك.</p>
+
+          <dl class="recap">
+            <div><dt>الاسم</dt><dd id="recapName">—</dd></div>
+            <div><dt>سنتصل على</dt><dd class="ltr" id="recapPhone">—</dd></div>
+            <div><dt>الإجراء</dt><dd id="recapProcedure">—</dd></div>
+          </dl>
+        </section>
+      </main>
+
+      <!-- الأزرار خارج منطقة التمرير حتى تبقى في المتناول دائماً. -->
+      <div class="actions">
+        <div class="actions-inner">
+          <span class="hint" id="actionsHint">اضغط <kbd>Ctrl</kbd> + <kbd>Enter</kbd> للإرسال من أي حقل</span>
+          <button class="submit" type="submit" id="submitBtn" form="appointmentForm">
+            <span class="label">إرسال الطلب</span>
+            <span class="spinner" aria-hidden="true"></span>
+          </button>
+          <button type="button" class="ghost" id="againBtn" hidden>طلب موعد آخر</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ===== الأوراق ===== -->
+<!-- خارج النموذج عمداً: لا شيء هنا يُرسل مع البيانات. -->
+
+<div class="sh" id="countrySheet" hidden>
+  <div class="sh-scrim" data-close></div>
+  <div class="sh-card" role="dialog" aria-modal="true" aria-label="اختر الدولة">
+    <span class="sh-grab" aria-hidden="true"></span>
+    <div class="sh-head">
+      <span class="sh-title">اختر الدولة</span>
+      <button type="button" class="sh-close" data-close aria-label="إغلاق">✕</button>
+    </div>
+    <div class="sh-search">
+      <input class="inp" id="csSearch" type="text" inputmode="search" enterkeyhint="search"
+             placeholder="ابحث باسم الدولة أو المفتاح" autocomplete="off">
+    </div>
+    <div class="sh-body"><ul class="opts" id="csList"></ul></div>
+  </div>
+</div>
+
+<div class="sh" id="procedureSheet" hidden>
+  <div class="sh-scrim" data-close></div>
+  <div class="sh-card" role="dialog" aria-modal="true" aria-label="اختر الإجراء">
+    <span class="sh-grab" aria-hidden="true"></span>
+    <div class="sh-head">
+      <span class="sh-title">اختر الإجراء</span>
+      <button type="button" class="sh-close" data-close aria-label="إغلاق">✕</button>
+    </div>
+    <div class="sh-search" hidden>
+      <input class="inp" type="text" inputmode="search" enterkeyhint="search"
+             placeholder="ابحث عن الإجراء" autocomplete="off">
+    </div>
+    <div class="sh-body"><ul class="opts"></ul></div>
+  </div>
+</div>
+
+<div class="sh" id="referralSheet" hidden>
+  <div class="sh-scrim" data-close></div>
+  <div class="sh-card" role="dialog" aria-modal="true" aria-label="كيف سمعت عنا؟">
+    <span class="sh-grab" aria-hidden="true"></span>
+    <div class="sh-head">
+      <span class="sh-title">كيف سمعت عنا؟</span>
+      <button type="button" class="sh-close" data-close aria-label="إغلاق">✕</button>
+    </div>
+    <div class="sh-search" hidden>
+      <input class="inp" type="text" inputmode="search" enterkeyhint="search"
+             placeholder="ابحث" autocomplete="off">
+    </div>
+    <div class="sh-body"><ul class="opts"></ul></div>
+  </div>
+</div>
+
+<script>
+/* =========================================================
+   طلب موعد — صفحة مستقلّة على نطاق فرعي خاص (appointment.<domain>)
+   تنادي واجهة AlAmalBusiness من أصل مختلف.
+   ========================================================= */
+(function () {
+  'use strict';
+
+  // ------------------------------------------------------------------
+  // The one line to set before uploading: the AlAmalBusiness API origin.
+  // This page's own origin must ALSO be in the API's Cors:AllowedOrigins, or
+  // the browser blocks every call before it reaches the controller.
+  // ------------------------------------------------------------------
+  const API_BASE = 'https://alamalhosp-001-site6.itempurl.com';
+
+  // The anonymous surface only (PublicAppointmentController).
+  const API = {
+    options: API_BASE + '/api/public/appointment/options',
+    submit: API_BASE + '/api/public/appointment'
+  };
+
+  const $ = id => document.getElementById(id);
+
+  const form = $('appointmentForm');
+  const scroller = $('scroller');
+  const successView = $('successView');
+  const submitBtn = $('submitBtn');
+  const againBtn = $('againBtn');
+  const actionsHint = $('actionsHint');
+  const formError = $('formError');
+  const detailsInput = $('details');
+  const detailsCount = $('detailsCount');
+  const phoneInput = $('phoneNumber');
+
+  const countryValue = $('phoneCountryCode');
+  const countryBtn = $('countryBtn');
+  const countryLabel = $('countryLabel');
+  const countryDial = $('countryDial');
+  const countrySheet = $('countrySheet');
+  const csList = $('csList');
+  const csSearch = $('csSearch');
+
+  // A mouse and a physical keyboard: focus a sheet's search on open. On a
+  // phone that would throw the keyboard up over the list, so it stays off.
+  const finePointer = window.matchMedia('(hover:hover) and (pointer:fine)');
+
+  /* =========================================================
+     القشرة: ملء الشاشة ومنع التكبير (منقولة من صفحة الآراء كما هي)
+     ========================================================= */
+
+  const vv = window.visualViewport;
+  const root = document.documentElement;
+
+  let shellW = window.innerWidth;
+  let shellH = window.innerHeight;
+
+  function syncVisible() {
+    const visible = vv ? vv.height : window.innerHeight;
+    root.style.setProperty('--vv-h', visible + 'px');
+    root.style.setProperty('--kb-h', Math.max(0, shellH - visible) + 'px');
+    keepFocusVisible();
+  }
+
+  let focusTimer = 0;
+  function keepFocusVisible() {
+    clearTimeout(focusTimer);
+    focusTimer = setTimeout(() => {
+      const el = document.activeElement;
+      if (!el || !scroller.contains(el)) return;
+      const visible = vv ? vv.height : window.innerHeight;
+      const rect = el.getBoundingClientRect();
+      const top = scroller.getBoundingClientRect().top;
+      const margin = 16;
+      if (rect.top < top + margin) {
+        scroller.scrollBy({ top: rect.top - top - margin, behavior: 'smooth' });
+      } else if (rect.bottom + margin > visible) {
+        scroller.scrollBy({ top: rect.bottom + margin - visible, behavior: 'smooth' });
+      }
+    }, 140);
+  }
+
+  const EDITABLE = 'input:not([type=hidden]):not([type=radio]),textarea,select';
+  const editable = el => !!(el && el.matches && el.matches(EDITABLE));
+  const typing = () => editable(document.activeElement);
+
+  let lastTyped = 0;
+  document.addEventListener('focusin', e => { if (editable(e.target)) lastTyped = Date.now(); });
+  document.addEventListener('focusout', e => { if (editable(e.target)) lastTyped = Date.now(); });
+  const keyboardLikely = () => typing() || Date.now() - lastTyped < 700;
+
+  function syncShell(force) {
+    const w = window.innerWidth;
+    const h = window.innerHeight;
+    // A height-only shrink while a field is focused is a keyboard, not a
+    // window resize — ignore it (see AmalFeedback's README).
+    if (!force && w === shellW && h < shellH && keyboardLikely()) return;
+    shellW = w;
+    shellH = h;
+    root.style.setProperty('--app-h', h + 'px');
+  }
+
+  if (vv) {
+    vv.addEventListener('resize', syncVisible);
+    vv.addEventListener('scroll', syncVisible);
+  }
+  window.addEventListener('resize', () => { syncShell(false); syncVisible(); });
+  window.addEventListener('orientationchange', () => setTimeout(() => {
+    syncShell(true);
+    syncVisible();
+  }, 260));
+
+  document.addEventListener('focusout', () => setTimeout(() => {
+    if (!typing()) { syncShell(true); syncVisible(); }
+  }, 900));
+
+  syncShell(true);
+  syncVisible();
+
+  ['gesturestart', 'gesturechange', 'gestureend'].forEach(type => {
+    document.addEventListener(type, e => e.preventDefault(), { passive: false });
+  });
+
+  document.addEventListener('touchmove', e => {
+    if (e.touches.length > 1) e.preventDefault();
+  }, { passive: false });
+
+  let lastTouchEnd = 0;
+  document.addEventListener('touchend', e => {
+    const now = Date.now();
+    if (now - lastTouchEnd <= 320) e.preventDefault();
+    lastTouchEnd = now;
+  }, { passive: false });
+
+  document.addEventListener('wheel', e => {
+    if (e.ctrlKey) e.preventDefault();
+  }, { passive: false });
+
+  document.addEventListener('keydown', e => {
+    if ((e.ctrlKey || e.metaKey) && ['+', '-', '=', '_', '0'].includes(e.key)) e.preventDefault();
+  });
+
+  window.addEventListener('scroll', () => window.scrollTo(0, 0));
+
+  document.addEventListener('focusin', event => {
+    if (scroller.contains(event.target)) keepFocusVisible();
+  });
+
+  /* =========================================================
+     الأوراق — محرّك واحد لكل الأوراق
+     ========================================================= */
+
+  let activeSheet = null;
+  let sheetTrigger = null;
+
+  function openSheet(sheet, trigger) {
+    if (activeSheet) closeSheet();
+    activeSheet = sheet;
+    sheetTrigger = trigger || null;
+    sheet.hidden = false;
+    if (sheetTrigger) sheetTrigger.setAttribute('aria-expanded', 'true');
+
+    if (finePointer.matches) {
+      const search = sheet.querySelector('.sh-search:not([hidden]) input');
+      const current = sheet.querySelector('.opt[aria-current="true"]') || sheet.querySelector('.opt');
+      const target = search || current;
+      if (target) target.focus({ preventScroll: true });
+    }
+  }
+
+  function closeSheet() {
+    if (!activeSheet) return;
+    const sheet = activeSheet;
+    const trigger = sheetTrigger;
+    activeSheet = null;
+    sheetTrigger = null;
+    sheet.hidden = true;
+    if (trigger) {
+      trigger.setAttribute('aria-expanded', 'false');
+      trigger.focus({ preventScroll: true });
+    }
+  }
+
+  function enableDragToClose(sheet) {
+    const card = sheet.querySelector('.sh-card');
+    const zones = [sheet.querySelector('.sh-grab'), sheet.querySelector('.sh-head')].filter(Boolean);
+    let startY = 0, delta = 0, dragging = false;
+
+    const start = e => { dragging = true; delta = 0; startY = e.touches[0].clientY; card.style.transition = 'none'; };
+    const move = e => {
+      if (!dragging) return;
+      delta = Math.max(0, e.touches[0].clientY - startY);
+      card.style.transform = 'translateY(' + delta + 'px)';
+    };
+    const end = () => {
+      if (!dragging) return;
+      dragging = false;
+      card.style.transition = '';
+      card.style.transform = '';
+      if (delta > 90) closeSheet();
+    };
+
+    zones.forEach(zone => {
+      zone.addEventListener('touchstart', start, { passive: true });
+      zone.addEventListener('touchmove', move, { passive: true });
+      zone.addEventListener('touchend', end);
+      zone.addEventListener('touchcancel', end);
+    });
+  }
+
+  document.querySelectorAll('.sh').forEach(sheet => {
+    sheet.addEventListener('click', event => {
+      if (event.target.closest('[data-close]')) closeSheet();
+    });
+    enableDragToClose(sheet);
+  });
+
+  document.addEventListener('keydown', event => {
+    if (!activeSheet) return;
+    if (event.key === 'Escape') { event.preventDefault(); closeSheet(); return; }
+
+    // Arrow keys walk the options, so a keyboard user can pick without Tab
+    // stepping through every row.
+    if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+      const opts = [...activeSheet.querySelectorAll('.opt')];
+      if (!opts.length) return;
+      event.preventDefault();
+      const index = opts.indexOf(document.activeElement);
+      const next = event.key === 'ArrowDown'
+        ? opts[index < 0 ? 0 : Math.min(index + 1, opts.length - 1)]
+        : opts[index <= 0 ? 0 : index - 1];
+      next.focus();
+      next.scrollIntoView({ block: 'nearest' });
+      return;
+    }
+
+    if (event.key !== 'Tab') return;
+    const focusable = [...activeSheet.querySelectorAll('button:not([disabled]),input,select')]
+      .filter(el => el.offsetParent !== null);
+    if (!focusable.length) return;
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (!activeSheet.contains(document.activeElement)) { event.preventDefault(); first.focus(); }
+    else if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+    else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+  });
+
+  /* =========================================================
+     عناصر القوائم المشتركة
+     ========================================================= */
+
+  function optionRow(label, dial, selected, onPick) {
+    const li = document.createElement('li');
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'opt';
+    if (selected) btn.setAttribute('aria-current', 'true');
+
+    const name = document.createElement('span');
+    name.textContent = label;
+    btn.appendChild(name);
+
+    if (dial) {
+      const d = document.createElement('span');
+      d.className = 'dial';
+      d.dir = 'ltr';
+      d.textContent = dial;
+      btn.appendChild(d);
+    }
+
+    btn.addEventListener('click', onPick);
+    li.appendChild(btn);
+    return li;
+  }
+
+  function listHeading(text) {
+    const li = document.createElement('li');
+    li.className = 'opt-group';
+    li.textContent = text;
+    return li;
+  }
+
+  function listEmpty(text) {
+    const li = document.createElement('li');
+    li.className = 'opt-empty';
+    li.textContent = text;
+    return li;
+  }
+
+  /** يوحّد الألف والهاء والياء ليطابق البحث ما يكتبه المستخدم فعلاً */
+  function normalizeAr(text) {
+    return text
+      .replace(/[إأآٱ]/g, 'ا')
+      .replace(/ة/g, 'ه')
+      .replace(/ى/g, 'ي')
+      .replace(/[ًٌٍَُِّْ]/g, '')
+      .trim();
+  }
+
+  const arabicDigits = /[٠-٩۰-۹]/g;
+  function toLatinDigits(value) {
+    return value.replace(arabicDigits, ch => {
+      const code = ch.charCodeAt(0);
+      const base = code >= 0x06F0 ? 0x06F0 : 0x0660;
+      return String(code - base);
+    });
+  }
+
+  /* =========================================================
+     مفتاح الدولة
+     ========================================================= */
+
+  // [الاسم بالعربية, المفتاح]. The API stores this in a 6-character column,
+  // so every value has to stay within that — the longest is 5 ("+1868").
+  const COUNTRIES = [
+    ['أفغانستان','+93'],['ألبانيا','+355'],['الجزائر','+213'],['أندورا','+376'],
+    ['أنغولا','+244'],['أنتيغوا وبربودا','+1268'],['الأرجنتين','+54'],['أرمينيا','+374'],
+    ['أستراليا','+61'],['النمسا','+43'],['أذربيجان','+994'],['الباهاما','+1242'],
+    ['البحرين','+973'],['بنغلاديش','+880'],['بربادوس','+1246'],['بيلاروسيا','+375'],
+    ['بلجيكا','+32'],['بليز','+501'],['بنين','+229'],['بوتان','+975'],
+    ['بوليفيا','+591'],['البوسنة والهرسك','+387'],['بوتسوانا','+267'],['البرازيل','+55'],
+    ['بروناي','+673'],['بلغاريا','+359'],['بوركينا فاسو','+226'],['بوروندي','+257'],
+    ['كمبوديا','+855'],['الكاميرون','+237'],['كندا','+1'],['الرأس الأخضر','+238'],
+    ['أفريقيا الوسطى','+236'],['تشاد','+235'],['تشيلي','+56'],['الصين','+86'],
+    ['كولومبيا','+57'],['جزر القمر','+269'],['الكونغو','+242'],['الكونغو الديمقراطية','+243'],
+    ['كوستاريكا','+506'],['ساحل العاج','+225'],['كرواتيا','+385'],['كوبا','+53'],
+    ['قبرص','+357'],['التشيك','+420'],['الدنمارك','+45'],['جيبوتي','+253'],
+    ['دومينيكا','+1767'],['الدومينيكان','+1809'],['الإكوادور','+593'],['مصر','+20'],
+    ['السلفادور','+503'],['غينيا الاستوائية','+240'],['إريتريا','+291'],['إستونيا','+372'],
+    ['إثيوبيا','+251'],['فيجي','+679'],['فنلندا','+358'],['فرنسا','+33'],
+    ['الغابون','+241'],['غامبيا','+220'],['جورجيا','+995'],['ألمانيا','+49'],
+    ['غانا','+233'],['اليونان','+30'],['غرينادا','+1473'],['غواتيمالا','+502'],
+    ['غينيا','+224'],['غينيا بيساو','+245'],['غيانا','+592'],['هايتي','+509'],
+    ['هندوراس','+504'],['هونغ كونغ','+852'],['المجر','+36'],['آيسلندا','+354'],
+    ['الهند','+91'],['إندونيسيا','+62'],['إيران','+98'],['العراق','+964'],
+    ['أيرلندا','+353'],['إسرائيل','+972'],['إيطاليا','+39'],['جامايكا','+1876'],
+    ['اليابان','+81'],['الأردن','+962'],['كازاخستان','+7'],['كينيا','+254'],
+    ['كيريباتي','+686'],['الكويت','+965'],['قيرغيزستان','+996'],['لاوس','+856'],
+    ['لاتفيا','+371'],['لبنان','+961'],['ليسوتو','+266'],['ليبيريا','+231'],
+    ['ليبيا','+218'],['ليختنشتاين','+423'],['ليتوانيا','+370'],['لوكسمبورغ','+352'],
+    ['ماكاو','+853'],['مقدونيا الشمالية','+389'],['مدغشقر','+261'],['مالاوي','+265'],
+    ['ماليزيا','+60'],['المالديف','+960'],['مالي','+223'],['مالطا','+356'],
+    ['جزر مارشال','+692'],['موريتانيا','+222'],['موريشيوس','+230'],['المكسيك','+52'],
+    ['ميكرونيزيا','+691'],['مولدوفا','+373'],['موناكو','+377'],['منغوليا','+976'],
+    ['الجبل الأسود','+382'],['المغرب','+212'],['موزمبيق','+258'],['ميانمار','+95'],
+    ['ناميبيا','+264'],['ناورو','+674'],['نيبال','+977'],['هولندا','+31'],
+    ['نيوزيلندا','+64'],['نيكاراغوا','+505'],['النيجر','+227'],['نيجيريا','+234'],
+    ['كوريا الشمالية','+850'],['النرويج','+47'],['عُمان','+968'],['باكستان','+92'],
+    ['بالاو','+680'],['فلسطين','+970'],['بنما','+507'],['بابوا غينيا الجديدة','+675'],
+    ['باراغواي','+595'],['بيرو','+51'],['الفلبين','+63'],['بولندا','+48'],
+    ['البرتغال','+351'],['بورتوريكو','+1787'],['قطر','+974'],['رومانيا','+40'],
+    ['روسيا','+7'],['رواندا','+250'],['سانت كيتس ونيفيس','+1869'],['سانت لوسيا','+1758'],
+    ['سانت فنسنت والغرينادين','+1784'],['ساموا','+685'],['سان مارينو','+378'],['ساو تومي وبرينسيبي','+239'],
+    ['السعودية','+966'],['السنغال','+221'],['صربيا','+381'],['سيشل','+248'],
+    ['سيراليون','+232'],['سنغافورة','+65'],['سلوفاكيا','+421'],['سلوفينيا','+386'],
+    ['جزر سليمان','+677'],['الصومال','+252'],['جنوب أفريقيا','+27'],['كوريا الجنوبية','+82'],
+    ['جنوب السودان','+211'],['إسبانيا','+34'],['سريلانكا','+94'],['السودان','+249'],
+    ['سورينام','+597'],['السويد','+46'],['سويسرا','+41'],['سوريا','+963'],
+    ['تايوان','+886'],['طاجيكستان','+992'],['تنزانيا','+255'],['تايلاند','+66'],
+    ['تيمور الشرقية','+670'],['توغو','+228'],['تونغا','+676'],['ترينيداد وتوباغو','+1868'],
+    ['تونس','+216'],['تركيا','+90'],['تركمانستان','+993'],['توفالو','+688'],
+    ['أوغندا','+256'],['أوكرانيا','+380'],['الإمارات','+971'],['بريطانيا','+44'],
+    ['الولايات المتحدة','+1'],['أوروغواي','+598'],['أوزبكستان','+998'],['فانواتو','+678'],
+    ['الفاتيكان','+379'],['فنزويلا','+58'],['فيتنام','+84'],['اليمن','+967'],
+    ['زامبيا','+260'],['زيمبابوي','+263']
+  ];
+
+  // Nearly every patient is one of these — repeated at the top of the list.
+  const COMMON = ['+962','+966','+971','+965','+974','+973','+968','+964','+963','+970','+961','+20'];
+  const DEFAULT_CODE = '+962';
+
+  const byCode = new Map(COUNTRIES.map(([name, code]) => [code, name]));
+  const sortedCountries = [...COUNTRIES].sort((a, b) => a[0].localeCompare(b[0], 'ar'));
+
+  function setCountry(code) {
+    countryValue.value = code;
+    countryLabel.textContent = byCode.get(code) || '';
+    countryDial.textContent = code;
+  }
+
+  function renderCountryList(query) {
+    const q = normalizeAr(query.toLowerCase());
+    const digits = toLatinDigits(query).replace(/\D/g, '');
+    csList.textContent = '';
+
+    const row = (name, code) => optionRow(name, code, code === countryValue.value, () => {
+      setCountry(code);
+      closeSheet();
+    });
+
+    if (!q && !digits) {
+      csList.appendChild(listHeading('الأكثر استخداماً'));
+      for (const code of COMMON) csList.appendChild(row(byCode.get(code), code));
+      csList.appendChild(listHeading('كل الدول'));
+      for (const [name, code] of sortedCountries) csList.appendChild(row(name, code));
+      return;
+    }
+
+    const matches = sortedCountries.filter(([name, code]) =>
+      (q && normalizeAr(name.toLowerCase()).includes(q)) ||
+      (digits && code.replace('+', '').startsWith(digits)));
+
+    if (!matches.length) {
+      csList.appendChild(listEmpty('لا توجد نتائج'));
+      return;
+    }
+    for (const [name, code] of matches) csList.appendChild(row(name, code));
+  }
+
+  countryBtn.addEventListener('click', () => {
+    csSearch.value = '';
+    renderCountryList('');
+    openSheet(countrySheet, countryBtn);
+    const current = csList.querySelector('[aria-current="true"]');
+    if (current) current.scrollIntoView({ block: 'center' });
+  });
+
+  csSearch.addEventListener('input', () => renderCountryList(csSearch.value));
+  csSearch.addEventListener('keydown', event => {
+    if (event.key !== 'Enter') return;
+    event.preventDefault();
+    const first = csList.querySelector('.opt');
+    if (first) first.click();
+  });
+
+  setCountry(DEFAULT_CODE);
+
+  /* =========================================================
+     الإجراء و«كيف سمعت عنا» — منتقٍ واحد لقائمتين من قاعدة البيانات
+     ========================================================= */
+
+  function listPicker(opts) {
+    const btn = $(opts.button);
+    const text = $(opts.text);
+    const hidden = $(opts.hidden);
+    const sheet = $(opts.sheet);
+    const list = sheet.querySelector('.opts');
+    const searchWrap = sheet.querySelector('.sh-search');
+    const search = searchWrap.querySelector('input');
+    let items = [];
+    let failed = false;
+
+    function set(id, name) {
+      hidden.value = id == null ? '' : String(id);
+      text.textContent = name || opts.placeholder;
+      text.classList.toggle('ph', !name);
+      clearError(opts.hidden);
+    }
+
+    function render(query) {
+      const q = normalizeAr(String(query || '').toLowerCase());
+      list.textContent = '';
+      const matches = q ? items.filter(i => normalizeAr(i.name.toLowerCase()).includes(q)) : items;
+
+      if (!matches.length) {
+        list.appendChild(listEmpty(items.length ? 'لا توجد نتائج' : 'لا توجد خيارات متاحة حالياً'));
+        return;
+      }
+      for (const item of matches) {
+        list.appendChild(optionRow(item.name, null, String(item.id) === hidden.value, () => {
+          set(item.id, item.name);
+          closeSheet();
+        }));
+      }
+    }
+
+    btn.addEventListener('click', () => {
+      // After a failed load the picker is the retry control.
+      if (failed) { loadOptions(); return; }
+      searchWrap.hidden = items.length <= 8;
+      search.value = '';
+      render('');
+      openSheet(sheet, btn);
+      const current = list.querySelector('[aria-current="true"]');
+      if (current) current.scrollIntoView({ block: 'center' });
+    });
+
+    search.addEventListener('input', () => render(search.value));
+    search.addEventListener('keydown', event => {
+      if (event.key !== 'Enter') return;
+      event.preventDefault();
+      const first = list.querySelector('.opt');
+      if (first) first.click();
+    });
+
+    return {
+      control: btn,
+      value: () => hidden.value,
+      label: () => (hidden.value ? text.textContent : ''),
+      reset: () => set(null, null),
+      loading() {
+        failed = false;
+        btn.disabled = true;
+        text.textContent = 'جارٍ التحميل…';
+        text.classList.add('ph');
+      },
+      loaded(rows) {
+        items = rows.map(r => ({ id: r.id, name: r.name || '' }));
+        failed = false;
+        btn.disabled = false;
+        set(null, null);
+        if (!items.length) text.textContent = 'لا توجد خيارات متاحة حالياً';
+      },
+      failed() {
+        items = [];
+        failed = true;
+        btn.disabled = false;
+        text.textContent = 'تعذّر التحميل — اضغط لإعادة المحاولة';
+        text.classList.add('ph');
+      }
+    };
+  }
+
+  const procedure = listPicker({
+    button: 'procedureBtn', text: 'procedureText', hidden: 'procedureId',
+    sheet: 'procedureSheet', placeholder: 'اختر الإجراء'
+  });
+
+  const referral = listPicker({
+    button: 'referralBtn', text: 'referralText', hidden: 'referralSourceId',
+    sheet: 'referralSheet', placeholder: 'اختر من القائمة'
+  });
+
+  // Both lists come back from one call.
+  async function loadOptions() {
+    procedure.loading();
+    referral.loading();
+    try {
+      const res = await fetch(API.options, { headers: { Accept: 'application/json' } });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const payload = await res.json();
+      procedure.loaded(payload.procedures || []);
+      referral.loaded(payload.referralSources || []);
+      formError.hidden = true;
+    } catch (err) {
+      console.error('تعذّر تحميل القوائم', err);
+      procedure.failed();
+      referral.failed();
+      showFormError('تعذّر تحميل القوائم. تأكّد من الاتصال ثم اضغط على حقل الإجراء لإعادة المحاولة.');
+    }
+  }
+
+  loadOptions();
+
+  /* =========================================================
+     الهاتف والتفاصيل
+     ========================================================= */
+
+  phoneInput.addEventListener('input', () => {
+    const cleaned = toLatinDigits(phoneInput.value).replace(/[^\d\s-]/g, '');
+    if (cleaned !== phoneInput.value) phoneInput.value = cleaned;
+    clearError('phoneNumber');
+  });
+
+  detailsInput.addEventListener('input', () => {
+    detailsCount.textContent = detailsInput.value.length;
+    clearError('details');
+  });
+
+  // Enter moves to the next field instead of submitting.
+  form.querySelectorAll('input[type="text"],input[type="tel"]').forEach((input, index, all) => {
+    input.addEventListener('keydown', event => {
+      if (event.key !== 'Enter' || event.ctrlKey || event.metaKey) return;
+      event.preventDefault();
+      const next = all[index + 1];
+      if (next) next.focus(); else input.blur();
+    });
+  });
+
+  // Ctrl/⌘+Enter submits from anywhere on the form, the textarea included.
+  form.addEventListener('keydown', event => {
+    if (event.key === 'Enter' && (event.ctrlKey || event.metaKey) && !activeSheet) {
+      event.preventDefault();
+      form.requestSubmit(submitBtn);
+    }
+  });
+
+  if (/Mac|iPhone|iPad/.test(navigator.platform)) {
+    const first = actionsHint.querySelector('kbd');
+    if (first) first.textContent = '⌘';
+  }
+
+  /* =========================================================
+     الأخطاء
+     ========================================================= */
+
+  function controlFor(field) {
+    if (field === 'procedureId') return procedure.control;
+    if (field === 'referralSourceId') return referral.control;
+    return $(field);
+  }
+
+  function clearError(field) {
+    const control = controlFor(field);
+    if (control) {
+      control.classList.remove('invalid');
+      control.removeAttribute('aria-invalid');
+    }
+    const slot = form.querySelector('[data-err-for="' + field + '"]');
+    if (slot) slot.textContent = '';
+  }
+
+  function showFieldErrors(errors) {
+    let firstInvalid = null;
+    for (const [field, message] of Object.entries(errors)) {
+      const slot = form.querySelector('[data-err-for="' + field + '"]');
+      if (slot) slot.textContent = message;
+
+      const control = controlFor(field);
+      if (!control) continue;
+      control.classList.add('invalid');
+      control.setAttribute('aria-invalid', 'true');
+      if (!firstInvalid) firstInvalid = control;
+    }
+    if (firstInvalid) {
+      firstInvalid.focus({ preventScroll: true });
+      firstInvalid.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }
+
+  function clearAllErrors() {
+    ['fullName', 'phoneNumber', 'procedureId', 'referralSourceId', 'details'].forEach(clearError);
+    formError.hidden = true;
+    formError.textContent = '';
+  }
+
+  function showFormError(message) {
+    formError.textContent = message;
+    formError.hidden = false;
+    formError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+
+  form.querySelectorAll('.inp').forEach(el => {
+    if (!el.id) return;
+    el.addEventListener('input', () => clearError(el.id));
+    el.addEventListener('change', () => clearError(el.id));
+  });
+
+  /* =========================================================
+     التحقّق والإرسال
+     ========================================================= */
+
+  function validate() {
+    const errors = {};
+    const value = id => ($(id).value || '').trim();
+
+    if (value('fullName').length < 2) errors.fullName = 'الاسم مطلوب (حرفان على الأقل)';
+
+    const digits = toLatinDigits(value('phoneNumber')).replace(/\D/g, '');
+    if (!digits) errors.phoneNumber = 'رقم الهاتف مطلوب';
+    else if (digits.length < 7 || digits.length > 15) errors.phoneNumber = 'رقم الهاتف غير صحيح';
+
+    if (!procedure.value()) errors.procedureId = 'يرجى اختيار الإجراء';
+    if (!referral.value()) errors.referralSourceId = 'يرجى اختيار كيف سمعت عنا';
+
+    return errors;
+  }
+
+  form.addEventListener('submit', async event => {
+    event.preventDefault();
+    if (submitBtn.disabled) return;
+    clearAllErrors();
+
+    const errors = validate();
+    if (Object.keys(errors).length > 0) {
+      showFieldErrors(errors);
+      return;
+    }
+
+    const phoneDigits = toLatinDigits(phoneInput.value).replace(/\D/g, '');
+    const payload = {
+      fullName: $('fullName').value.trim(),
+      phoneCountryCode: countryValue.value,
+      phoneNumber: phoneDigits,
+      procedureId: Number(procedure.value()),
+      referralSourceId: Number(referral.value()),
+      details: detailsInput.value.trim() || null
+    };
+
+    setLoading(true);
+    try {
+      const res = await fetch(API.submit, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      const body = await res.json().catch(() => null);
+
+      if (!res.ok) {
+        if (res.status === 429) {
+          showFormError('حاولت أكثر من اللازم خلال وقت قصير. انتظر دقيقة ثم أعد المحاولة.');
+          return;
+        }
+        showFormError(extractError(body) || 'تعذّر إرسال الطلب، يرجى المحاولة مرة أخرى.');
+        return;
+      }
+
+      showSuccess({
+        name: payload.fullName,
+        phone: payload.phoneCountryCode + ' ' + (phoneDigits.replace(/^0+/, '') || phoneDigits),
+        procedure: procedure.label()
+      });
+    } catch (err) {
+      console.error(err);
+      showFormError('تعذّر الاتصال بالخادم. تأكّد من الاتصال بالإنترنت وحاول مجدداً.');
+    } finally {
+      setLoading(false);
+    }
+  });
+
+  /** رسالة الخطأ سواء جاءت من الخدمة أو من التحقّق التلقائي في ASP.NET */
+  function extractError(body) {
+    if (!body) return null;
+    if (body.error) return body.error;
+    if (body.message) return body.message;
+    if (body.errors) {
+      const first = Object.values(body.errors)[0];
+      if (Array.isArray(first) && first.length) return first[0];
+    }
+    if (body.title) return body.title;
+    return null;
+  }
+
+  function setLoading(isLoading) {
+    submitBtn.disabled = isLoading;
+    submitBtn.classList.toggle('loading', isLoading);
+    submitBtn.querySelector('.label').textContent = isLoading ? 'جارٍ الإرسال...' : 'إرسال الطلب';
+  }
+
+  /* =========================================================
+     شاشة النجاح
+     ========================================================= */
+
+  function showSuccess(summary) {
+    $('recapName').textContent = summary.name;
+    $('recapPhone').textContent = summary.phone;
+    $('recapProcedure').textContent = summary.procedure || '—';
+    form.hidden = true;
+    successView.hidden = false;
+    submitBtn.hidden = true;
+    actionsHint.hidden = true;
+    againBtn.hidden = false;
+    scroller.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  againBtn.addEventListener('click', () => {
+    form.reset();
+    clearAllErrors();
+    detailsCount.textContent = '0';
+    // form.reset() cannot restore these: their values sit in hidden inputs
+    // driven by the pickers.
+    setCountry(DEFAULT_CODE);
+    procedure.reset();
+    referral.reset();
+    successView.hidden = true;
+    form.hidden = false;
+    submitBtn.hidden = false;
+    actionsHint.hidden = false;
+    againBtn.hidden = true;
+    scroller.scrollTo({ top: 0, behavior: 'smooth' });
+    $('fullName').focus({ preventScroll: true });
+  });
+})();
+</script>
+</body>
+</html>
