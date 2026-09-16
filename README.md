@@ -8,28 +8,36 @@ bottom-sheet pickers and country-code list; read that README for why those
 work the way they do.
 
 What a patient sends: full name, phone number with country code, the
-procedure they want, how they heard about the hospital, and optional free-text
-details. The two lists come from the API and are maintained by an Admin in the
-console under *Settings → Appointments*, together with the list of email
-addresses that are notified of every new request.
+**department** they want an appointment with, how they heard about the
+hospital, and optional free-text details. Both lists come from the API — the
+departments are the hospital's shared department list (the same one the
+feedback page shows), and the referral sources are maintained by an Admin in
+the console under *Settings → Appointments*.
+
+The department is not just a label: it decides whose inbox the request lands
+in (`/ap/inbox` in the console) and which managers are emailed about it — the
+department's `AManager`s. It replaced an appointment-only "procedure" list and
+a hand-maintained list of notification addresses on 2026-09-16.
 
 ## Differences from the feedback page
 
 - **Laptop and desktop fill the window.** From 960px wide the page is a
   full-height split screen — the hospital panel on one side, the form on the
   other — instead of a floating card capped at 760px tall. Fields sit in two
-  columns (name | phone, procedure | how you heard) so the whole form fits
+  columns (name | phone, department | how you heard) so the whole form fits
   above the submit bar on a 1366×768 laptop without scrolling; a
   `max-height:760px` rule tightens the spacing for exactly that screen.
   Phones and tablets (<960px) keep the feedback page's layouts unchanged.
 - **Mouse and keyboard.** Hover states on fields and options; opening a picker
   focuses its search box (or the current option) when the device has a fine
   pointer; ↑/↓ walk the options and Enter picks; Ctrl/⌘+Enter submits from any
-  field. None of this runs on touch devices, where focusing a search box would
-  throw the keyboard over the list.
+  field (it works, but is deliberately not advertised under the button — the
+  submit button sits centred and alone on that row). None of this runs on
+  touch devices, where focusing a search box would throw the keyboard over
+  the list.
 - **No reference number.** Nothing is looked up by the patient afterwards; the
   success screen recaps the name, the number that will be called and the
-  procedure.
+  department.
 
 ## The two things that must be set
 
@@ -47,8 +55,8 @@ Both are on `PublicAppointmentController`, rate limited with the feedback form's
 
 | | |
 |---|---|
-| `GET /api/public/appointment/options` | `{ procedures: [{id, name}], referralSources: [{id, name}] }`, active entries only |
-| `POST /api/public/appointment` | `{ fullName, phoneCountryCode, phoneNumber, procedureId, referralSourceId, details }` → `{ success, error, createdDate }` |
+| `GET /api/public/appointment/options` | `{ departments: [{id, name}], referralSources: [{id, name}] }`, active entries only |
+| `POST /api/public/appointment` | `{ fullName, phoneCountryCode, phoneNumber, departmentId, referralSourceId, details }` → `{ success, error, createdDate }` |
 
 ## Deploying
 

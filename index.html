@@ -213,7 +213,6 @@ textarea.inp{resize:none;min-height:108px;line-height:1.7}
   box-shadow:0 -14px 28px -24px rgba(8,48,71,.7);
 }
 .actions-inner{display:flex;flex-direction:column;gap:10px}
-.actions .hint,.actions .hint[hidden]{display:none}
 
 .submit{
   width:100%;position:relative;
@@ -428,13 +427,7 @@ textarea.inp{resize:none;min-height:108px;line-height:1.7}
   textarea.inp{min-height:120px}
 
   .actions{padding:16px clamp(40px,5vw,96px) calc(16px + env(safe-area-inset-bottom))}
-  .actions-inner{max-width:780px;margin-inline:auto;flex-direction:row;align-items:center;justify-content:space-between;gap:20px}
-  .actions .hint{display:block;font-size:12.5px;color:var(--ink-soft)}
-  .actions .hint[hidden]{display:none}
-  .actions .hint kbd{
-    font-family:inherit;font-size:11.5px;background:var(--field);border:1px solid var(--line);
-    border-radius:6px;padding:1px 6px;direction:ltr;display:inline-block;
-  }
+  .actions-inner{max-width:780px;margin-inline:auto;flex-direction:row;align-items:center;justify-content:center;gap:20px}
   .submit,.ghost{width:auto;min-width:260px;flex:none}
   .done{padding:clamp(16px,6vh,64px) 0}
 }
@@ -541,14 +534,14 @@ textarea.inp{resize:none;min-height:108px;line-height:1.7}
 
           <div class="grid2">
             <div class="field">
-              <span class="lbl" id="procedureLbl">الإجراء المطلوب <span class="req">*</span></span>
-              <button type="button" class="picker" id="procedureBtn"
-                      aria-haspopup="dialog" aria-expanded="false" aria-labelledby="procedureLbl procedureText">
-                <span class="lead" aria-hidden="true">🩺</span>
-                <span class="val ph" id="procedureText">جارٍ التحميل…</span>
+              <span class="lbl" id="departmentLbl">القسم <span class="req">*</span></span>
+              <button type="button" class="picker" id="departmentBtn"
+                      aria-haspopup="dialog" aria-expanded="false" aria-labelledby="departmentLbl departmentText">
+                <span class="lead" aria-hidden="true">🏥</span>
+                <span class="val ph" id="departmentText">جارٍ التحميل…</span>
               </button>
-              <input type="hidden" id="procedureId" name="procedureId">
-              <p class="err" data-err-for="procedureId"></p>
+              <input type="hidden" id="departmentId" name="departmentId">
+              <p class="err" data-err-for="departmentId"></p>
             </div>
 
             <div class="field">
@@ -588,7 +581,7 @@ textarea.inp{resize:none;min-height:108px;line-height:1.7}
           <dl class="recap">
             <div><dt>الاسم</dt><dd id="recapName">—</dd></div>
             <div><dt>سنتصل على</dt><dd class="ltr" id="recapPhone">—</dd></div>
-            <div><dt>الإجراء</dt><dd id="recapProcedure">—</dd></div>
+            <div><dt>القسم</dt><dd id="recapDepartment">—</dd></div>
           </dl>
         </section>
       </main>
@@ -596,7 +589,6 @@ textarea.inp{resize:none;min-height:108px;line-height:1.7}
       <!-- الأزرار خارج منطقة التمرير حتى تبقى في المتناول دائماً. -->
       <div class="actions">
         <div class="actions-inner">
-          <span class="hint" id="actionsHint">اضغط <kbd>Ctrl</kbd> + <kbd>Enter</kbd> للإرسال من أي حقل</span>
           <button class="submit" type="submit" id="submitBtn" form="appointmentForm">
             <span class="label">إرسال الطلب</span>
             <span class="spinner" aria-hidden="true"></span>
@@ -628,17 +620,17 @@ textarea.inp{resize:none;min-height:108px;line-height:1.7}
   </div>
 </div>
 
-<div class="sh" id="procedureSheet" hidden>
+<div class="sh" id="departmentSheet" hidden>
   <div class="sh-scrim" data-close></div>
-  <div class="sh-card" role="dialog" aria-modal="true" aria-label="اختر الإجراء">
+  <div class="sh-card" role="dialog" aria-modal="true" aria-label="اختر القسم">
     <span class="sh-grab" aria-hidden="true"></span>
     <div class="sh-head">
-      <span class="sh-title">اختر الإجراء</span>
+      <span class="sh-title">اختر القسم</span>
       <button type="button" class="sh-close" data-close aria-label="إغلاق">✕</button>
     </div>
     <div class="sh-search" hidden>
       <input class="inp" type="text" inputmode="search" enterkeyhint="search"
-             placeholder="ابحث عن الإجراء" autocomplete="off">
+             placeholder="ابحث عن القسم" autocomplete="off">
     </div>
     <div class="sh-body"><ul class="opts"></ul></div>
   </div>
@@ -688,7 +680,6 @@ textarea.inp{resize:none;min-height:108px;line-height:1.7}
   const successView = $('successView');
   const submitBtn = $('submitBtn');
   const againBtn = $('againBtn');
-  const actionsHint = $('actionsHint');
   const formError = $('formError');
   const detailsInput = $('details');
   const detailsCount = $('detailsCount');
@@ -1172,9 +1163,12 @@ textarea.inp{resize:none;min-height:108px;line-height:1.7}
     };
   }
 
-  const procedure = listPicker({
-    button: 'procedureBtn', text: 'procedureText', hidden: 'procedureId',
-    sheet: 'procedureSheet', placeholder: 'اختر الإجراء'
+  // The department is what routes the request: it decides which team's
+  // inbox it lands in and which managers are emailed about it. It is the
+  // shared Departments list, the same one the feedback page picks from.
+  const department = listPicker({
+    button: 'departmentBtn', text: 'departmentText', hidden: 'departmentId',
+    sheet: 'departmentSheet', placeholder: 'اختر القسم'
   });
 
   const referral = listPicker({
@@ -1184,20 +1178,20 @@ textarea.inp{resize:none;min-height:108px;line-height:1.7}
 
   // Both lists come back from one call.
   async function loadOptions() {
-    procedure.loading();
+    department.loading();
     referral.loading();
     try {
       const res = await fetch(API.options, { headers: { Accept: 'application/json' } });
       if (!res.ok) throw new Error('HTTP ' + res.status);
       const payload = await res.json();
-      procedure.loaded(payload.procedures || []);
+      department.loaded(payload.departments || []);
       referral.loaded(payload.referralSources || []);
       formError.hidden = true;
     } catch (err) {
       console.error('تعذّر تحميل القوائم', err);
-      procedure.failed();
+      department.failed();
       referral.failed();
-      showFormError('تعذّر تحميل القوائم. تأكّد من الاتصال ثم اضغط على حقل الإجراء لإعادة المحاولة.');
+      showFormError('تعذّر تحميل القوائم. تأكّد من الاتصال ثم اضغط على حقل القسم لإعادة المحاولة.');
     }
   }
 
@@ -1228,7 +1222,10 @@ textarea.inp{resize:none;min-height:108px;line-height:1.7}
     });
   });
 
-  // Ctrl/⌘+Enter submits from anywhere on the form, the textarea included.
+  // Ctrl/⌘+Enter still submits from anywhere on the form, the textarea
+  // included. It is no longer advertised under the button — the hint was
+  // the only thing on that row besides the button, and the button reads
+  // better centred on its own.
   form.addEventListener('keydown', event => {
     if (event.key === 'Enter' && (event.ctrlKey || event.metaKey) && !activeSheet) {
       event.preventDefault();
@@ -1236,17 +1233,12 @@ textarea.inp{resize:none;min-height:108px;line-height:1.7}
     }
   });
 
-  if (/Mac|iPhone|iPad/.test(navigator.platform)) {
-    const first = actionsHint.querySelector('kbd');
-    if (first) first.textContent = '⌘';
-  }
-
   /* =========================================================
      الأخطاء
      ========================================================= */
 
   function controlFor(field) {
-    if (field === 'procedureId') return procedure.control;
+    if (field === 'departmentId') return department.control;
     if (field === 'referralSourceId') return referral.control;
     return $(field);
   }
@@ -1280,7 +1272,7 @@ textarea.inp{resize:none;min-height:108px;line-height:1.7}
   }
 
   function clearAllErrors() {
-    ['fullName', 'phoneNumber', 'procedureId', 'referralSourceId', 'details'].forEach(clearError);
+    ['fullName', 'phoneNumber', 'departmentId', 'referralSourceId', 'details'].forEach(clearError);
     formError.hidden = true;
     formError.textContent = '';
   }
@@ -1311,7 +1303,7 @@ textarea.inp{resize:none;min-height:108px;line-height:1.7}
     if (!digits) errors.phoneNumber = 'رقم الهاتف مطلوب';
     else if (digits.length < 7 || digits.length > 15) errors.phoneNumber = 'رقم الهاتف غير صحيح';
 
-    if (!procedure.value()) errors.procedureId = 'يرجى اختيار الإجراء';
+    if (!department.value()) errors.departmentId = 'يرجى اختيار القسم';
     if (!referral.value()) errors.referralSourceId = 'يرجى اختيار كيف سمعت عنا';
 
     return errors;
@@ -1333,7 +1325,7 @@ textarea.inp{resize:none;min-height:108px;line-height:1.7}
       fullName: $('fullName').value.trim(),
       phoneCountryCode: countryValue.value,
       phoneNumber: phoneDigits,
-      procedureId: Number(procedure.value()),
+      departmentId: Number(department.value()),
       referralSourceId: Number(referral.value()),
       details: detailsInput.value.trim() || null
     };
@@ -1360,7 +1352,7 @@ textarea.inp{resize:none;min-height:108px;line-height:1.7}
       showSuccess({
         name: payload.fullName,
         phone: payload.phoneCountryCode + ' ' + (phoneDigits.replace(/^0+/, '') || phoneDigits),
-        procedure: procedure.label()
+        department: department.label()
       });
     } catch (err) {
       console.error(err);
@@ -1396,11 +1388,10 @@ textarea.inp{resize:none;min-height:108px;line-height:1.7}
   function showSuccess(summary) {
     $('recapName').textContent = summary.name;
     $('recapPhone').textContent = summary.phone;
-    $('recapProcedure').textContent = summary.procedure || '—';
+    $('recapDepartment').textContent = summary.department || '—';
     form.hidden = true;
     successView.hidden = false;
     submitBtn.hidden = true;
-    actionsHint.hidden = true;
     againBtn.hidden = false;
     scroller.scrollTo({ top: 0, behavior: 'smooth' });
   }
@@ -1412,12 +1403,11 @@ textarea.inp{resize:none;min-height:108px;line-height:1.7}
     // form.reset() cannot restore these: their values sit in hidden inputs
     // driven by the pickers.
     setCountry(DEFAULT_CODE);
-    procedure.reset();
+    department.reset();
     referral.reset();
     successView.hidden = true;
     form.hidden = false;
     submitBtn.hidden = false;
-    actionsHint.hidden = false;
     againBtn.hidden = true;
     scroller.scrollTo({ top: 0, behavior: 'smooth' });
     $('fullName').focus({ preventScroll: true });
